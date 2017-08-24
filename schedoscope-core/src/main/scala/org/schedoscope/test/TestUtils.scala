@@ -44,7 +44,7 @@ object TestUtils {
     }
 
     // lineage validation
-    if (!disableLineageValidation && view.explicitLineage.isEmpty && view.dependencies.nonEmpty) {
+    if (!disableLineageValidation && view.dependencies.nonEmpty && view.explicitLineage.isEmpty) {
       view.tryLineage match {
         case Success(_) =>
         case Failure(ex) => ex match {
