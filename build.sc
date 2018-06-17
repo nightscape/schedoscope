@@ -88,29 +88,17 @@ trait FmppModule extends ScalaModule {
   }
 }
 trait PomModule extends SbtModule {
-  import upickle.default._
-  implicit val fooReadWrite: ReadWriter[Model] = {
-    val reader = new org.apache.maven.model.io.xpp3.MavenXpp3Reader
-    val writer = new org.apache.maven.model.io.xpp3.MavenXpp3Writer
-    readwriter[String].bimap[Model](
-      x => { val buffer = new java.io.StringWriter; writer.write(buffer, x); buffer.toString },
-      pomXml => { val buffer = new java.io.StringReader(pomXml); reader.read(buffer) }
-    )
-  }
-  implicit def rwMavenRepository: ReadWriter[MavenRepository] = macroRW
-  implicit def rwAuth: ReadWriter[coursier.core.Authentication] = macroRW
-  implicit def rwRepository: ReadWriter[coursier.Repository] = macroRW
-  def pomFile: T[PathRef] = T { PathRef(millSourcePath / "pom.xml") }
+  def pomFile = millSourcePath / "pom.xml"
   def localRepo = defaultLocalRepo
   def profiles: Seq[String] = Seq.empty
   def mavenUserProperties: Map[String, String] = Map.empty
   def settingsLocation = ammonite.ops.home / "m2settings.xml"
-  def effectivePom = T { loadEffectivePom(pomFile().path.toIO, localRepo, profiles, mavenUserProperties) }
+  def effectivePom = loadEffectivePom(pomFile.toIO, localRepo, profiles, mavenUserProperties)
   lazy val effectiveSettings = loadUserSettings(settingsLocation.toIO, profiles)
-  def scalaVersion = T { getScalaVersion(effectivePom()).get }//OrElse("2.12.6")
-  def name: T[String] = T { removeBinaryVersionSuffix(effectivePom().getArtifactId) }
-  def organization: T[String] = T { effectivePom().getGroupId }
-  def version: T[String] = T { effectivePom().getVersion }
+  def scalaVersion = getScalaVersion(effectivePom).get//OrElse("2.12.6")
+  def name: String = removeBinaryVersionSuffix(effectivePom.getArtifactId)
+  def organization: String = effectivePom.getGroupId
+  def version: String = effectivePom.getVersion
   def moduleDepsCoordinates = moduleDeps.collect {
     case p: PomModule => (p.organization, p.name, p.version)
   }
@@ -141,26 +129,25 @@ trait PomModule extends SbtModule {
     ivy"$getGroupId:$getArtifactId:$getVersion"
   }
   def ivyDeps = Agg(
-    effectivePom()
+    effectivePom
       .getDependencies
       .asScala
       .filterNot(dep => moduleDepsCoordinates.contains((dep.getGroupId, dep.getArtifactId, dep.getVersion)))
       .map(convertDep): _*
   )
 
-  def repositories = T {
+  def repositories() =
     super.repositories ++
-      pomRepositories() ++
+      pomRepositories ++
       effectiveSettings.toSeq.flatMap(userRepositories)
-  }
 
-  def pomRepositories: T[Seq[MavenRepository]] = T {
+  def pomRepositories: Seq[MavenRepository] =
     for {
-      repo <- effectivePom().getRepositories.asScala
+      repo <- effectivePom.getRepositories.asScala
       // TODO - Support other layouts
       if repo.getLayout == "default"
     } yield MavenRepository(repo.getUrl)
-  }
+
   /** Extract any resolvers defined through the user settings.xml file. */
   def userRepositories(settings: MavenSettings): Seq[MavenRepository] = {
     val profiles = settings.getProfilesAsMap
