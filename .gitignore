@@ -20,3 +20,4 @@ build/
 .fbExcludeFilterFile
 .java-version
 MRAppJar.jar
+/out/
