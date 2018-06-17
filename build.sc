@@ -17,13 +17,13 @@ trait SchedoscopeModule extends PomModule {
   def scalaVersion = "2.11.12"
 }
 
-object conf extends SchedoscopeModule {
+object `schedoscope-conf` extends SchedoscopeModule {
 }
 
-object export extends SchedoscopeModule
+object `schedoscope-export` extends SchedoscopeModule
 
-object core extends SchedoscopeModule with FmppModule with JavaccModule {
-  def moduleDeps = Seq(conf, export)
+object `schedoscope-core` extends SchedoscopeModule with FmppModule with JavaccModule {
+  def moduleDeps = Seq(`schedoscope-conf`, `schedoscope-export`)
   def javaccFiles = T { expandFmpp().map(_.path).filter(p => p.isFile && p.ext == "jj") }
   override def generatedSources = T { generateParser() }
 }
