@@ -17,7 +17,8 @@ package org.schedoscope.scheduler.commandline
 
 import java.io.File
 
-import jline.{ConsoleReader, History}
+import org.jline.reader._
+import org.jline.reader.impl.history.DefaultHistory
 import org.schedoscope.scheduler.service.SchedoscopeService
 
 /**
@@ -26,11 +27,10 @@ import org.schedoscope.scheduler.service.SchedoscopeService
 class SchedoscopeCliRepl(val schedoscope: SchedoscopeService) {
   def start() {
     val ctrl = new SchedoscopeCliCommandRunner(schedoscope)
-    val reader = new ConsoleReader()
-    val history = new History()
+    val history = new DefaultHistory()
     val histFileDir = Option(System.getenv("XDG_CACHE_HOME")).getOrElse(System.getenv("HOME") + "/.cache")
-    history.setHistoryFile(new File(histFileDir + "/schedoscope_history"))
-    reader.setHistory(history)
+    val reader = LineReaderBuilder.builder.history(history).build
+    reader.setVariable(LineReader.HISTORY_FILE, new File(histFileDir + "/schedoscope_history"))
     while (true) {
       try {
         val cmd = reader.readLine("schedoscope> ")
